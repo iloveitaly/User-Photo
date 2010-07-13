@@ -440,7 +440,7 @@ function userphoto_profile_update($userID){
 						$thumbinfo = getimagesize($thumbpath);
 						
 						#Update usermeta
-						if($current_user->user_level <= get_option('userphoto_level_moderated') ){
+						if(!$current_user->has_cap(get_option('userphoto_level_moderated'))){
 							update_usermeta($userID, "userphoto_approvalstatus", USERPHOTO_PENDING);
 							
 							$admin_notified = get_option('userphoto_admin_notified');
@@ -686,7 +686,7 @@ function userphoto_options_page(){
 		$userphoto_admin_notified = (int)$_POST['userphoto_admin_notified'];
 		update_option('userphoto_admin_notified', $userphoto_admin_notified);
 		
-		$userphoto_level_moderated = (int)$_POST['userphoto_level_moderated'];
+		$userphoto_level_moderated = $_POST['userphoto_level_moderated'];
 		update_option('userphoto_level_moderated', $userphoto_level_moderated);
 		
 		$userphoto_use_avatar_fallback = !empty($_POST['userphoto_use_avatar_fallback']);
@@ -762,16 +762,14 @@ function userphoto_options_page(){
 				<?php echo $betweenRow ?>
 				<select id='userphoto_admin_notified' name="userphoto_admin_notified">
 					<option value="0" class='none'>(none)</option>
-					<?php
+					<?php					
 					global $wpdb;
+					
 					$users = $wpdb->get_results("SELECT ID FROM $wpdb->users ORDER BY user_login");
-					foreach($users as $user){
-						$u = get_userdata($user->ID);
-						if($u->user_level == 10){ #if($u->has_cap('administrator')){
-							print "<option value='" . $u->ID . "'";
-							if($userphoto_admin_notified == $u->ID)
-								print " selected='selected'";
-							print ">" . $u->user_login . "</option>";
+					foreach($users as $user) {
+						$userOb = new WP_User($user->ID);
+						if($userOb->has_cap('administrator')) {
+							echo "<option value=\"{$user->ID}\">".$userOb->user_login."</option>";
 						}
 					}
 					?>
@@ -785,10 +783,13 @@ function userphoto_options_page(){
 				<?php echo $betweenRow ?>
 				<select name="userphoto_level_moderated" id="userphoto_level_moderated">
 					<option value="-1" <?php if($userphoto_level_moderated == -1) echo ' selected="selected"' ?> class='none'>(none)</option>
-					<option value="0" <?php if($userphoto_level_moderated == 0) echo ' selected="selected"' ?>>Subscriber</option>
-					<option value="1" <?php if($userphoto_level_moderated == 1) echo ' selected="selected"' ?>>Contributor</option>
-					<option value="2" <?php if($userphoto_level_moderated == 2) echo ' selected="selected"' ?>>Author</option>
-					<option value="7" <?php if($userphoto_level_moderated == 7) echo ' selected="selected"' ?>>Editor</option>
+					<?php
+					global $wp_roles;
+					$roleList = $wp_roles->get_names();
+					foreach($roleList as $roleName => $displayName) {
+						echo "<option value=\"{$roleName}\"".($userphoto_level_moderated == $roleName ? ' selected="selected"' : '').">{$displayName}</option>";
+					}
+					?>
 				</select>
 				<!--<script type="text/javascript">
 				document.getElementById('userphoto_do_moderation').onclick();
