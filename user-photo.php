@@ -378,7 +378,7 @@ function userphoto_profile_update($userID){
 						$thumbinfo = getimagesize($thumbpath);
 						
 						#Update usermeta
-						if(!$current_user->has_cap(get_option('userphoto_level_moderated'))){
+						if(get_option('userphoto_level_moderated') != -1 && !$current_user->has_cap(get_option('userphoto_level_moderated'))){
 							update_usermeta($userID, "userphoto_approvalstatus", USERPHOTO_PENDING);
 							
 							$admin_notified = get_option('userphoto_admin_notified');
